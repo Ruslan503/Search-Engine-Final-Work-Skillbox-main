@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/search_engine
+    username: postgres
+    password: 1
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+
+logging:
+  level:
+    org.springframework: ERROR
+    searchengine: INFO
+
+
+indexing-settings:
+  sites:
+#    - url: https://lenta.ru
+#      name: Лента.ру
+    - url: http://radiomv.ru
+      name: radiomv
+    - url: https://playback.ru
+      name: PlayBack.Ru
+    - url: https://skillbox.ru
+      name: Skillbox
+#    - url: https://lentaerrorurl.ru
+#      name: LentaError
+
+connection-settings:
+  userAgent: Mozilla/5.0 (X11; Fedora;Linux x86; rv:60.0) Gecko/20100101 Firefox/60.0
+  referer: https://www.google.com
