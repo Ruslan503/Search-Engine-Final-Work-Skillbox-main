@@ -1,191 +1,177 @@
 databaseChangeLog:
-
   - changeSet:
-      id: 1-create-site-table
-      author: you
+      id: 2025-01-29-001-create-site-table
+      author: ruslan
       changes:
         - createTable:
             tableName: site
             columns:
               - column:
                   name: id
-                  type: INT
+                  type: int
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
-
               - column:
                   name: status
-                  type: VARCHAR(32)
+                  type: varchar(50)
                   constraints:
                     nullable: false
-
               - column:
                   name: status_time
-                  type: TIMESTAMP
-
+                  type: timestamp
               - column:
                   name: last_error
-                  type: TEXT
-
+                  type: varchar(2000)
               - column:
                   name: url
-                  type: VARCHAR(255)
+                  type: varchar(512)
                   constraints:
                     nullable: false
-
               - column:
                   name: name
-                  type: VARCHAR(255)
+                  type: varchar(255)
                   constraints:
                     nullable: false
 
   - changeSet:
-      id: 2-create-page-table
-      author: you
+      id: 2025-01-29-002-create-page-table
+      author: ruslan
       changes:
         - createTable:
             tableName: page
             columns:
               - column:
                   name: id
-                  type: INT
+                  type: int
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
-
               - column:
                   name: site_id
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
               - column:
                   name: path
-                  type: VARCHAR(512)
+                  type: varchar(767)
                   constraints:
                     nullable: false
-
               - column:
                   name: code
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
               - column:
                   name: content
-                  type: TEXT
-                  constraints:
-                    nullable: false
-
+                  type: text
         - createIndex:
-            indexName: path_index
             tableName: page
+            indexName: path_index
             columns:
               - column:
                   name: path
 
-        - addForeignKeyConstraint:
-            constraintName: fk_page_site
-            baseTableName: page
-            baseColumnNames: site_id
-            referencedTableName: site
-            referencedColumnNames: id
-            onDelete: CASCADE
-
   - changeSet:
-      id: 3-create-lemma-table
-      author: you
+      id: 2025-01-29-003-create-lemma-table
+      author: ruslan
       changes:
         - createTable:
             tableName: lemma
             columns:
               - column:
                   name: id
-                  type: INT
+                  type: int
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
-
-              - column:
-                  name: lemma
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-
               - column:
                   name: frequency
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
+              - column:
+                  name: lemma
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
               - column:
                   name: site_id
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
         - addUniqueConstraint:
             tableName: lemma
-            columnNames: lemma, site_id
+            columnNames: lemma,site_id
             constraintName: uk_lemma_site
 
-        - addForeignKeyConstraint:
-            constraintName: fk_lemma_site
-            baseTableName: lemma
-            baseColumnNames: site_id
-            referencedTableName: site
-            referencedColumnNames: id
-            onDelete: CASCADE
-
   - changeSet:
-      id: 4-create-index-search-table
-      author: you
+      id: 2025-01-29-004-create-index_search-table
+      author: ruslan
       changes:
         - createTable:
             tableName: index_search
             columns:
               - column:
                   name: id
-                  type: INT
+                  type: int
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
-
               - column:
                   name: page_id
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
               - column:
                   name: lemma_id
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
-
               - column:
                   name: lemma_rank
-                  type: INT
+                  type: int
                   constraints:
                     nullable: false
 
+  - changeSet:
+      id: 2025-01-29-005-add-foreign-keys
+      author: ruslan
+      changes:
         - addForeignKeyConstraint:
-            constraintName: fk_index_page
+            baseTableName: page
+            baseColumnNames: site_id
+            referencedTableName: site
+            referencedColumnNames: id
+            constraintName: fk_page_site
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: lemma
+            baseColumnNames: site_id
+            referencedTableName: site
+            referencedColumnNames: id
+            constraintName: fk_lemma_site
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
             baseTableName: index_search
             baseColumnNames: page_id
             referencedTableName: page
             referencedColumnNames: id
+            constraintName: fk_index_page
             onDelete: CASCADE
 
         - addForeignKeyConstraint:
-            constraintName: fk_index_lemma
             baseTableName: index_search
             baseColumnNames: lemma_id
             referencedTableName: lemma
             referencedColumnNames: id
+            constraintName: fk_index_lemma
             onDelete: CASCADE
+
+
