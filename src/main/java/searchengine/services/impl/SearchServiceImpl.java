@@ -36,123 +36,6 @@ public class SearchServiceImpl implements SearchService {
     private final Status indexSuccessStatus = Status.INDEXED;
     private final double frequencyLimitProportion = 100;
 
-//    @Override
-//    public ResponseEntity<Object> search(String query, String site, Integer offset, Integer limit) throws IOException {
-//        if (checkIndexStatusNotIndexed(site)) {
-//            return ResponseEntity.badRequest().body(new NotOkResponse("Индексация сайта для поиска не закончена"));
-//        }
-//        //
-//        SitePage siteTarget = siteRepository.getSitePageByUrl(site);
-//        Integer countPages = siteTarget != null ? pageRepository.getCountPages(siteTarget.getId()) : pageRepository.getCountPages(null);
-//
-//        //Exclusion lemmas by frequent
-//        List<Lemma> lemmasForSearch = lemmaService.getLemmasFromText(query).keySet().stream().map(
-//                        it -> lemmaRepository.findLemmasByLemmaAndSiteId(it, siteTarget != null ? siteTarget.getId() : null))
-//                .flatMap(Collection::stream).collect(Collectors.toList());
-//        lemmasForSearch.removeIf(e -> {
-//            Integer lemmaFrequency = lemmaRepository.findCountPageByLemma(e.getLemma(), e.getSiteId());
-//            if (lemmaFrequency == null) return true;
-//            log.info("Lemma frequency(" + e + "):" + lemmaFrequency);
-//            log.info("Frequency limit:" + (double) lemmaFrequency / countPages);
-//            return ((double) lemmaFrequency / countPages > frequencyLimitProportion);
-//        });
-//
-//        if (lemmasForSearch.isEmpty()) {
-//            return ResponseEntity.ok(Collections.emptyList());
-//        }
-//
-//        //Sorting lemmas by frequent
-//        List<Lemma> sortedLemmasToSearch = lemmasForSearch.stream().
-//                map(l -> new AbstractMap.SimpleEntry<>(l.getFrequency(), l)).
-//                sorted(Comparator.comparingInt(Map.Entry::getKey)).
-//                map(Map.Entry::getValue).toList();
-//
-//
-//        //Search pages by first lemma
-//        Map<Integer, IndexSearch> indexesByLemmas = indexRepository.findIndexesByLemma(sortedLemmasToSearch.get(0).getId()).stream().collect(Collectors.toMap(IndexSearch::getPageId, index -> index));
-//        for (int i = 1; i <= sortedLemmasToSearch.size() - 1; i++) {
-//            List<IndexSearch> indexNextLemma = indexRepository.findIndexesByLemma(sortedLemmasToSearch.get(i).getId());
-//            List<Integer> pagesToSave = new ArrayList<>();
-//            for (IndexSearch indexNext : indexNextLemma) {
-//                if (indexesByLemmas.containsKey(indexNext.getPageId())) {
-//                    pagesToSave.add(indexNext.getPageId());
-//                }
-//            }
-//            indexesByLemmas.entrySet().removeIf(entry -> !pagesToSave.contains(entry.getKey()));
-//        }
-//
-//        //Output if empty result
-//        if (indexesByLemmas.isEmpty()) {
-//            return ResponseEntity.ok().body(new SearchResponse(true, 0, Collections.emptyList()));
-//        }
-//
-//        //Rank calculation
-//        Set<RankDto> pagesRelevance = new HashSet<>();
-//        int pageId = indexesByLemmas.values().stream().toList().get(0).getPageId();
-//        RankDto rankPage = new RankDto();
-//        for (IndexSearch index : indexesByLemmas.values()) {
-//            if (index.getPageId() == pageId) {
-//                rankPage.setPage(index.getPage());
-//            } else {
-//                rankPage.setRelativeRelevance(rankPage.getAbsRelevance() / rankPage.getMaxLemmaRank());
-//                pagesRelevance.add(rankPage);
-//                rankPage = new RankDto();
-//                rankPage.setPage(index.getPage());
-//                pageId = index.getPageId();
-//            }
-//            rankPage.setPageId(index.getPageId());
-//            rankPage.setAbsRelevance(rankPage.getAbsRelevance() + index.getLemmaCount());
-//            if (rankPage.getMaxLemmaRank() < index.getLemmaCount()) rankPage.setMaxLemmaRank(index.getLemmaCount());
-//        }
-//        rankPage.setRelativeRelevance(rankPage.getAbsRelevance() / rankPage.getMaxLemmaRank());
-//        pagesRelevance.add(rankPage);
-//
-//        //Sort pages Relevance
-//        List<RankDto> pagesRelevanceSorted = pagesRelevance.stream().sorted(Comparator.comparingDouble(RankDto::getRelativeRelevance).reversed()).toList();
-//
-//        //Converting pages relevance to searchDataResponses
-//        List<String> simpleLemmasFromSearch = new ArrayList<>(lemmasForSearch.stream().map(Lemma::getLemma).toList());
-//        List<SearchDataResponse> searchDataResponses = new ArrayList<>();
-//        for (RankDto rank : pagesRelevanceSorted) {
-//            Document doc = Jsoup.parse(rank.getPage().getContent());
-//            List<String> sentences = doc.body().getElementsMatchingOwnText("[\\p{IsCyrillic}]").stream().map(Element::text).toList();
-//            for (String sentence : sentences) {
-//                StringBuilder textFromElement = new StringBuilder(sentence);
-//                List<String> words = List.of(sentence.split("[\s:punct]"));
-//                int searchWords = 0;
-//                for (String word : words) {
-//                    String lemmaFromWord = lemmaService.getLemmaByWord(word.replaceAll("\\p{Punct}", ""));
-//                    if (simpleLemmasFromSearch.contains(lemmaFromWord)) {
-//                        markWord(textFromElement, word, 0);
-//                        searchWords += 1;
-//                    }
-//                }
-//                if (searchWords != 0) {
-//                    SitePage sitePage = siteRepository.findById(pageRepository.findById(rank.getPageId()).get().getSiteId()).get();
-//                    searchDataResponses.add(new SearchDataResponse(
-//                            sitePage.getUrl(),
-//                            sitePage.getName(),
-//                            rank.getPage().getPath(),
-//                            doc.title(),
-//                            textFromElement.toString(),
-//                            rank.getRelativeRelevance(),
-//                            searchWords
-//                    ));
-//                }
-//            }
-//        }
-//        List<SearchDataResponse> sortedSearchDataResponse = searchDataResponses.stream().sorted(Comparator.comparingDouble(SearchDataResponse::getRelevance).reversed()).toList();
-//        List<SearchDataResponse> result = new ArrayList<>();
-//        for (int i = limit * offset; i <= limit * offset + limit; i++) {
-//            try {
-//                result.add(sortedSearchDataResponse.get(i));
-//            } catch (IndexOutOfBoundsException ex) {
-//                break;
-//            }
-//        }
-//        result = result.stream().sorted(Comparator.comparingInt(SearchDataResponse::getWordsFound).reversed()).toList();
-//        return ResponseEntity.ok(result);
-//    }
 
     @Override
     public ResponseEntity<Object> search(String query, String site, Integer offset, Integer limit) throws IOException {
@@ -165,7 +48,6 @@ public class SearchServiceImpl implements SearchService {
             return ResponseEntity.badRequest().body(new NotOkResponse("Индексация сайта для поиска не закончена"));
         }
 
-        // Определяем целевой сайт (если указан)
         SitePage siteTarget = (site != null && !site.isBlank())
                 ? siteRepository.getSitePageByUrl(site)
                 : null;
@@ -174,14 +56,12 @@ public class SearchServiceImpl implements SearchService {
                 ? pageRepository.getCountPages(siteTarget.getId())
                 : pageRepository.getCountPages(null);
 
-        // 1. Получаем леммы из текста запроса (Map<лемма_строка, частота_в_запросе>)
         Map<String, Integer> lemmaStringMap = lemmaService.getLemmasFromText(query);
 
         if (lemmaStringMap.isEmpty()) {
             return ResponseEntity.ok(Map.of("result", true, "count", 0, "data", Collections.emptyList()));
         }
 
-        // 2. Находим реальные сущности Lemma по строкам
         List<Lemma> lemmasForSearch = new ArrayList<>();
 
         for (String lemmaStr : lemmaStringMap.keySet()) {
@@ -191,7 +71,6 @@ public class SearchServiceImpl implements SearchService {
             );
 
             if (!foundLemmas.isEmpty()) {
-                // Если несколько сайтов — берём первую (или можно логику доработать)
                 lemmasForSearch.add(foundLemmas.get(0));
             }
         }
@@ -200,7 +79,6 @@ public class SearchServiceImpl implements SearchService {
             return ResponseEntity.ok(Map.of("result", true, "count", 0, "data", Collections.emptyList()));
         }
 
-        // 3. Фильтруем слишком частые леммы
         lemmasForSearch = lemmasForSearch.stream()
                 .filter(lemma -> {
                     Integer freq = lemmaRepository.findCountPageByLemma(
@@ -223,12 +101,10 @@ public class SearchServiceImpl implements SearchService {
             return ResponseEntity.ok(Map.of("result", true, "count", 0, "data", Collections.emptyList()));
         }
 
-        // ───────────────────────────────────────────────
-        // 4. Поиск страниц, содержащих ВСЕ нужные леммы (пересечение)
-        // ───────────────────────────────────────────────
+
         Map<Integer, Double> pageRelevance = new HashMap<>(); // pageId → суммарная релевантность
 
-        // Начинаем с самой редкой леммы
+
         Lemma firstLemma = lemmasForSearch.get(0);
         List<IndexSearch> firstIndexes = indexRepository.findIndexesByLemma(firstLemma.getId());
 
@@ -236,7 +112,7 @@ public class SearchServiceImpl implements SearchService {
             pageRelevance.put(idx.getPageId(), (double) idx.getLemmaCount());
         }
 
-        // Пересекаем с остальными леммами
+
         for (int i = 1; i < lemmasForSearch.size(); i++) {
             Lemma current = lemmasForSearch.get(i);
             List<IndexSearch> currentIndexes = indexRepository.findIndexesByLemma(current.getId());
